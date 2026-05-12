@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wynyard Guesser — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0d0f;
+      --surface: #111518;
+      --surface2: #181c20;
+      --border: #ffffff12;
+      --accent: #00e5a0;
+      --accent2: #ff6b35;
+      --text: #e8eaed;
+      --muted: #6b7280;
+      --danger: #ff4444;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .admin-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.1em;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .admin-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      background: var(--accent2);
+      color: white;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+
+    .main { display: flex; gap: 0; flex: 1; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    /* ── Auth ── */
+    #auth-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .auth-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .auth-card h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Form elements ── */
+    .field { margin-bottom: 1rem; }
+
+    .field label {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .field input, .field select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-full { width: 100%; }
+
+    .btn-primary { background: var(--accent); color: #0a0d0f; }
+    .btn-primary:hover { background: #00c988; }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-danger { background: var(--danger); color: white; font-size: 0.85rem; padding: 0.4rem 0.75rem; }
+    .btn-danger:hover { background: #cc3333; }
+
+    .btn-secondary {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { border-color: var(--accent); }
+
+    .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.9rem; }
+
+    /* ── Content area ── */
+    .content { flex: 1; padding: 1.5rem; overflow-y: auto; }
+
+    .content-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+
+    .content-header h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.75rem;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Map upload ── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: #00e5a008;
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .upload-text { font-size: 0.9rem; color: var(--muted); }
+    .upload-text strong { color: var(--accent); }
+
+    /* ── Map preview with pin ── */
+    .map-container {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      cursor: crosshair;
+    }
+
+    .map-container img {
+      width: 100%;
+      border-radius: 8px;
+      display: block;
+      user-select: none;
+    }
+
+    .pin-marker {
+      position: absolute;
+      width: 20px; height: 20px;
+      background: var(--accent2);
+      border: 3px solid white;
+      border-radius: 50% 50% 50% 0;
+      transform: translate(-50%, -100%) rotate(-45deg);
+      pointer-events: none;
+      display: none;
+      filter: drop-shadow(0 2px 6px #0008);
+    }
+
+    .pin-coords {
+      position: absolute;
+      bottom: 0.5rem;
+      left: 0.5rem;
+      background: #000b;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--accent);
+      backdrop-filter: blur(4px);
+    }
+
+    .map-instruction {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Round cards ── */
+    .rounds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .round-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .round-card.selected {
+      border-color: var(--accent);
+    }
+
+    .round-card.selected::after {
+      content: '✓';
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: var(--accent);
+      color: #0a0d0f;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .round-thumb {
+      width: 100%;
+      height: 130px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .round-info {
+      padding: 0.75rem;
+    }
+
+    .round-label {
+      font-weight: 500;
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .round-coords {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .round-actions {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem 0.75rem;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 0.4rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .round-card.selected .toggle-btn {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Game creation result ── */
+    .game-result {
+      background: #00e5a012;
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+      display: none;
+    }
+
+    .game-result.visible { display: block; }
+
+    .game-code {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      margin: 0.5rem 0;
+    }
+
+    .game-link {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      word-break: break-all;
+      margin-top: 0.5rem;
+    }
+
+    .game-link a { color: var(--accent); }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.875rem 1.25rem;
+      font-size: 0.9rem;
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { border-color: var(--danger); color: var(--danger); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      font-family: 'DM Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Auth gate -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <h1>Admin Access</h1>
+    <div class="field">
+      <label>Admin Password</label>
+      <input type="password" id="pw-input" placeholder="Enter password" />
+    </div>
+    <button class="btn btn-primary btn-full" onclick="authenticate()">Enter →</button>
+    <div id="auth-error" style="color:var(--danger);font-size:0.85rem;margin-top:0.75rem;display:none;"></div>
+  </div>
+</div>
+
+<!-- Main App (hidden until auth) -->
+<div class="app" id="main-app" style="display:none;">
+
+  <header>
+    <div class="admin-logo">Wynyard Guesser</div>
+    <div class="admin-badge">Admin</div>
+  </header>
+
+  <div class="main">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div>
+        <div class="section-label">Quick Stats</div>
+        <div class="card">
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            <div>
+              <div style="font-size:2rem;font-family:'Bebas Neue',sans-serif;color:var(--accent);" id="stat-rounds">—</div>
+              <div style="font-size:0.75rem;color:var(--muted);">Total rounds available</div>
+            </div>
+            <div>
+              <div style="font-size:2rem;font-family:'Bebas Neue',sans-serif;color:var(--accent2);" id="stat-selected">0</div>
+              <div style="font-size:0.75rem;color:var(--muted);">Selected for next game</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">Create Game</div>
+        <div class="card">
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.5;">
+            Select rounds from the grid, then click Create to get an invite code.
+          </p>
+          <button class="btn btn-primary btn-full" onclick="createGame()">Create Game →</button>
+          <div class="game-result" id="game-result">
+            <div style="font-size:0.75rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">Invite Code</div>
+            <div class="game-code" id="game-code">——</div>
+            <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem;" id="game-round-count"></div>
+            <div class="game-link" id="game-link"></div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:1rem;width:100%;" onclick="copyLink()">Copy Invite Link</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('rounds')">Rounds</button>
+        <button class="tab-btn" onclick="switchTab('upload-map')">Map Setup</button>
+        <button class="tab-btn" onclick="switchTab('add-round')">Add Round</button>
+      </div>
+
+      <!-- ─ Rounds Tab ─ -->
+      <div class="tab-panel active" id="tab-rounds">
+        <div class="content-header">
+          <h2>Round Library</h2>
+          <div style="display:flex;gap:0.75rem;">
+            <button class="btn btn-secondary btn-sm" onclick="selectAll()">Select All</button>
+            <button class="btn btn-secondary btn-sm" onclick="deselectAll()">Deselect All</button>
+          </div>
+        </div>
+        <div class="status-bar" id="rounds-status">Loading rounds…</div>
+        <div class="rounds-grid" id="rounds-grid"></div>
+      </div>
+
+      <!-- ─ Map Setup Tab ─ -->
+      <div class="tab-panel" id="tab-upload-map">
+        <div class="content-header"><h2>Map Setup</h2></div>
+        <div style="max-width:600px;">
+          <p style="color:var(--muted);font-size:0.875rem;margin-bottom:1.5rem;line-height:1.6;">
+            Upload your Wynyard Quarter map PNG. This is shown to all players during the game as the background they click to guess on.
+            Only upload once — re-uploading replaces the existing map.
+          </p>
+          <div class="upload-zone" id="map-upload-zone">
+            <input type="file" id="map-file-input" accept=".png,.jpg,.jpeg" onchange="handleMapFileSelected(event)" />
+            <div class="upload-icon">🗺️</div>
+            <div class="upload-text">Drop your map PNG here or <strong>click to browse</strong></div>
+            <div id="map-filename" style="margin-top:0.5rem;font-family:'DM Mono',monospace;font-size:0.8rem;color:var(--accent);"></div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:1rem;width:100%;" onclick="uploadMap()" id="map-upload-btn" disabled>Upload Map</button>
+          <div id="map-current" style="margin-top:1.5rem;display:none;">
+            <div class="section-label">Current Map</div>
+            <img id="map-preview-img" src="" alt="Current map" style="width:100%;border-radius:8px;border:1px solid var(--border);" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ─ Add Round Tab ─ -->
+      <div class="tab-panel" id="tab-add-round">
+        <div class="content-header"><h2>Add Round</h2></div>
+        <div style="max-width:700px;">
+
+          <p style="color:var(--muted);font-size:0.875rem;margin-bottom:1.5rem;line-height:1.6;">
+            Upload a photo taken somewhere in Wynyard Quarter. Then click on the map below to pin the exact location where the photo was taken. That pinned coordinate becomes the correct answer.
+          </p>
+
+          <!-- Photo upload -->
+          <div class="field">
+            <label>Location Photo (.jpg or .png)</label>
+            <div class="upload-zone" id="photo-upload-zone">
+              <input type="file" id="photo-file-input" accept=".jpg,.jpeg,.png" onchange="handlePhotoSelected(event)" />
+              <div class="upload-icon" id="photo-upload-icon">📷</div>
+              <div class="upload-text" id="photo-upload-text">Drop photo here or <strong>click to browse</strong></div>
+              <img id="photo-preview" style="max-height:180px;border-radius:6px;margin-top:0.5rem;display:none;" />
+            </div>
+          </div>
+
+          <!-- Label -->
+          <div class="field">
+            <label>Label / Hint (optional)</label>
+            <input type="text" id="round-label" placeholder="e.g. North Wharf looking south" />
+          </div>
+
+          <!-- Map pin -->
+          <div class="map-instruction">
+            <span>📍</span>
+            <span>Click on the map below to set the correct answer location</span>
+          </div>
+
+          <div class="map-container" id="admin-map-container" onclick="handleAdminMapClick(event)" style="display:none;">
+            <img id="admin-map-img" src="" alt="Map" draggable="false" />
+            <div class="pin-marker" id="admin-pin"></div>
+            <div class="pin-coords" id="admin-pin-coords" style="display:none;"></div>
+          </div>
+
+          <div id="no-map-msg" style="color:var(--warning);font-size:0.85rem;padding:1rem;background:var(--surface);border-radius:8px;border:1px solid var(--border);">
+            ⚠️ No map uploaded yet. Go to the <strong>Map Setup</strong> tab first.
+          </div>
+
+          <div class="field" style="margin-top:1.25rem;">
+            <label>Coordinates (auto-filled when you click map)</label>
+            <div style="display:flex;gap:0.75rem;">
+              <input type="number" id="round-lat" placeholder="Latitude" step="0.000001" readonly style="font-family:'DM Mono',monospace;" />
+              <input type="number" id="round-lng" placeholder="Longitude" step="0.000001" readonly style="font-family:'DM Mono',monospace;" />
+            </div>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%;" onclick="addRound()" id="add-round-btn" disabled>Add Round →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Config ───────────────────────────────────────────────────────────────────
+  const BACKEND_URL = 'https://wynyardguesser-production.up.railway.app'; // e.g. https://wynyard-guesser.up.railway.app
+  const GAME_URL = 'https://gappyalec.github.io/wynyard-guesser/game';       // e.g. https://yourusername.github.io/wynyard-guesser
+
+  const MAP_BOUNDS = {
+    topLeft:     { lat: -36.835147, lng: 174.750291 },
+    bottomRight: { lat: -36.846271, lng: 174.761380 }
+  };
+
+  // ── State ────────────────────────────────────────────────────────────────────
+  let adminPassword = '';
+  let allRounds = [];
+  let selectedRoundIds = new Set();
+  let mapFileToUpload = null;
+  let photoFileToUpload = null;
+  let pinLat = null;
+  let pinLng = null;
+  let currentMapUrl = null;
+
+  // ── Auth ─────────────────────────────────────────────────────────────────────
+  function authenticate() {
+    const pw = document.getElementById('pw-input').value;
+    if (!pw) return;
+    adminPassword = pw;
+
+    fetch(`${BACKEND_URL}/admin/rounds`, {
+      headers: { 'x-admin-password': adminPassword }
+    }).then(r => {
+      if (r.status === 401) {
+        document.getElementById('auth-error').textContent = 'Incorrect password.';
+        document.getElementById('auth-error').style.display = 'block';
+        adminPassword = '';
+        return;
+      }
+      return r.json().then(data => {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'flex';
+        loadRounds(data.rounds);
+        loadMapPreview();
+      });
+    }).catch(() => {
+      document.getElementById('auth-error').textContent = 'Cannot reach server.';
+      document.getElementById('auth-error').style.display = 'block';
+    });
+  }
+
+  document.getElementById('pw-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') authenticate();
+  });
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', btn.textContent.toLowerCase().replace(' ', '-').startsWith(name.split('-')[0]));
+    });
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+  }
+
+  // ── Rounds ───────────────────────────────────────────────────────────────────
+  function loadRounds(rounds) {
+    allRounds = rounds;
+    renderRounds();
+    document.getElementById('stat-rounds').textContent = rounds.length;
+    document.getElementById('rounds-status').textContent =
+      rounds.length ? `${rounds.length} rounds available — click to select for next game` : 'No rounds yet. Add some in the "Add Round" tab.';
+  }
+
+  function renderRounds() {
+    const grid = document.getElementById('rounds-grid');
+    if (!allRounds.length) { grid.innerHTML = ''; return; }
+
+    grid.innerHTML = allRounds.map(r => {
+      const sel = selectedRoundIds.has(r.id);
+      return `
+        <div class="round-card ${sel ? 'selected' : ''}" id="round-card-${r.id}">
+          <img class="round-thumb" src="${r.photo_url}" alt="${escHtml(r.label || 'Round')}" loading="lazy" />
+          <div class="round-info">
+            <div class="round-label">${escHtml(r.label || 'Unlabelled')}</div>
+            <div class="round-coords">${r.answer_lat.toFixed(5)}, ${r.answer_lng.toFixed(5)}</div>
+          </div>
+          <div class="round-actions">
+            <button class="toggle-btn" onclick="toggleRound('${r.id}')">${sel ? '✓ Selected' : 'Select'}</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteRound('${r.id}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function toggleRound(id) {
+    if (selectedRoundIds.has(id)) selectedRoundIds.delete(id);
+    else selectedRoundIds.add(id);
+    document.getElementById('stat-selected').textContent = selectedRoundIds.size;
+    renderRounds();
+  }
+
+  function selectAll() {
+    allRounds.forEach(r => selectedRoundIds.add(r.id));
+    document.getElementById('stat-selected').textContent = selectedRoundIds.size;
+    renderRounds();
+  }
+
+  function deselectAll() {
+    selectedRoundIds.clear();
+    document.getElementById('stat-selected').textContent = 0;
+    renderRounds();
+  }
+
+  async function deleteRound(id) {
+    if (!confirm('Delete this round?')) return;
+    const r = await fetch(`${BACKEND_URL}/admin/rounds/${id}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-password': adminPassword }
+    });
+    if (r.ok) {
+      allRounds = allRounds.filter(r => r.id !== id);
+      selectedRoundIds.delete(id);
+      document.getElementById('stat-rounds').textContent = allRounds.length;
+      document.getElementById('stat-selected').textContent = selectedRoundIds.size;
+      renderRounds();
+      toast('Round deleted');
+    } else {
+      toast('Delete failed', true);
+    }
+  }
+
+  // ── Map Upload ───────────────────────────────────────────────────────────────
+  function handleMapFileSelected(event) {
+    mapFileToUpload = event.target.files[0];
+    if (mapFileToUpload) {
+      document.getElementById('map-filename').textContent = mapFileToUpload.name;
+      document.getElementById('map-upload-btn').disabled = false;
+    }
+  }
+
+  async function uploadMap() {
+    if (!mapFileToUpload) return;
+    const btn = document.getElementById('map-upload-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+
+    const formData = new FormData();
+    formData.append('map', mapFileToUpload);
+
+    try {
+      const r = await fetch(`${BACKEND_URL}/admin/upload-map`, {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPassword },
+        body: formData
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+      currentMapUrl = data.url;
+      loadMapPreview();
+      toast('Map uploaded successfully');
+    } catch (err) {
+      toast(err.message, true);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Upload Map';
+    }
+  }
+
+  function loadMapPreview() {
+    fetch(`${BACKEND_URL}/map-url`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.url) {
+          currentMapUrl = data.url;
+          document.getElementById('map-preview-img').src = data.url + '?t=' + Date.now();
+          document.getElementById('map-current').style.display = 'block';
+          // Also set admin map for round adding
+          document.getElementById('admin-map-img').src = data.url + '?t=' + Date.now();
+          document.getElementById('admin-map-container').style.display = 'block';
+          document.getElementById('no-map-msg').style.display = 'none';
+        }
+      }).catch(() => {});
+  }
+
+  // ── Add Round ────────────────────────────────────────────────────────────────
+  function handlePhotoSelected(event) {
+    photoFileToUpload = event.target.files[0];
+    if (photoFileToUpload) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const preview = document.getElementById('photo-preview');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        document.getElementById('photo-upload-icon').style.display = 'none';
+        document.getElementById('photo-upload-text').style.display = 'none';
+      };
+      reader.readAsDataURL(photoFileToUpload);
+      checkAddRoundReady();
+    }
+  }
+
+  function handleAdminMapClick(event) {
+    const img = document.getElementById('admin-map-img');
+    const rect = img.getBoundingClientRect();
+    const container = document.getElementById('admin-map-container');
+    const containerRect = container.getBoundingClientRect();
+
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+
+    if (clickX < 0 || clickY < 0 || clickX > rect.width || clickY > rect.height) return;
+
+    const xPct = clickX / rect.width;
+    const yPct = clickY / rect.height;
+
+    pinLat = MAP_BOUNDS.topLeft.lat + yPct * (MAP_BOUNDS.bottomRight.lat - MAP_BOUNDS.topLeft.lat);
+    pinLng = MAP_BOUNDS.topLeft.lng + xPct * (MAP_BOUNDS.bottomRight.lng - MAP_BOUNDS.topLeft.lng);
+
+    const pin = document.getElementById('admin-pin');
+    pin.style.left = (event.clientX - containerRect.left) + 'px';
+    pin.style.top = (event.clientY - containerRect.top) + 'px';
+    pin.style.display = 'block';
+
+    const coordsEl = document.getElementById('admin-pin-coords');
+    coordsEl.textContent = `${pinLat.toFixed(6)}, ${pinLng.toFixed(6)}`;
+    coordsEl.style.display = 'block';
+
+    document.getElementById('round-lat').value = pinLat.toFixed(6);
+    document.getElementById('round-lng').value = pinLng.toFixed(6);
+
+    checkAddRoundReady();
+  }
+
+  function checkAddRoundReady() {
+    const ready = photoFileToUpload && pinLat !== null;
+    document.getElementById('add-round-btn').disabled = !ready;
+  }
+
+  async function addRound() {
+    if (!photoFileToUpload || pinLat === null) return;
+
+    const btn = document.getElementById('add-round-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+
+    const formData = new FormData();
+    formData.append('photo', photoFileToUpload);
+    formData.append('lat', pinLat);
+    formData.append('lng', pinLng);
+    formData.append('label', document.getElementById('round-label').value.trim());
+
+    try {
+      const r = await fetch(`${BACKEND_URL}/admin/upload-round`, {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPassword },
+        body: formData
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+
+      allRounds.push(data.round);
+      document.getElementById('stat-rounds').textContent = allRounds.length;
+      renderRounds();
+
+      // Reset form
+      photoFileToUpload = null;
+      pinLat = null; pinLng = null;
+      document.getElementById('photo-preview').style.display = 'none';
+      document.getElementById('photo-upload-icon').style.display = 'block';
+      document.getElementById('photo-upload-text').style.display = 'block';
+      document.getElementById('photo-file-input').value = '';
+      document.getElementById('round-label').value = '';
+      document.getElementById('round-lat').value = '';
+      document.getElementById('round-lng').value = '';
+      document.getElementById('admin-pin').style.display = 'none';
+      document.getElementById('admin-pin-coords').style.display = 'none';
+      btn.textContent = 'Add Round →';
+
+      toast('Round added!');
+      switchTab('rounds');
+    } catch (err) {
+      toast(err.message, true);
+      btn.disabled = false;
+      btn.textContent = 'Add Round →';
+    }
+  }
+
+  // ── Create Game ───────────────────────────────────────────────────────────────
+  async function createGame() {
+    if (selectedRoundIds.size === 0) return toast('Select at least one round first.', true);
+
+    try {
+      const r = await fetch(`${BACKEND_URL}/admin/create-game`, {
+        method: 'POST',
+        headers: { 'x-admin-password': adminPassword, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roundIds: [...selectedRoundIds] })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error);
+
+      document.getElementById('game-code').textContent = data.roomCode;
+      document.getElementById('game-round-count').textContent = `${data.totalRounds} rounds`;
+      const link = `${GAME_URL}?code=${data.roomCode}`;
+      document.getElementById('game-link').innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
+      document.getElementById('game-result').classList.add('visible');
+      toast('Game created!');
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  function copyLink() {
+    const code = document.getElementById('game-code').textContent;
+    const link = `${GAME_URL}?code=${code}`;
+    navigator.clipboard.writeText(link).then(() => toast('Link copied!'));
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────────
+  let toastTimeout;
+  function toast(msg, isError = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (isError ? ' error' : '');
+    void el.offsetWidth;
+    el.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
