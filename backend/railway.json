@@ -1,15 +1,11 @@
 {
-  "name": "wynyard-guesser-backend",
-  "version": "1.0.0",
-  "main": "server.js",
-  "engines": {
-    "node": ">=20"
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
   },
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "dependencies": {
-    ...
+  "deploy": {
+    "startCommand": "node server.js",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
   }
 }
