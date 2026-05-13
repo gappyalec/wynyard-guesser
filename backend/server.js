@@ -201,7 +201,7 @@ app.get('/map-url', async (req, res) => {
 
 // ─── Socket.io Game Logic ─────────────────────────────────────────────────────
 const ROUND_DURATION = 30; // seconds
-const RESULTS_DURATION = 8; // seconds between rounds
+const RESULTS_DURATION = 10; // seconds between rounds
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

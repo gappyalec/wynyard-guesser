@@ -602,6 +602,136 @@
       color: var(--accent);
     }
 
+    /* ── Reveal Panel (replaces photo during results phase) ── */
+    .reveal-panel {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      flex-direction: column;
+      padding: 1.25rem 1.5rem;
+      overflow-y: auto;
+      z-index: 5;
+    }
+
+    .reveal-panel.visible { display: flex; }
+
+    .reveal-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.75rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.2rem;
+    }
+
+    .reveal-subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-bottom: 1.1rem;
+    }
+
+    .reveal-subtitle span { color: var(--accent); }
+
+    .reveal-row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .reveal-row:last-child { border-bottom: none; }
+
+    .reveal-rank {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.25rem;
+      min-width: 1.5rem;
+      text-align: center;
+    }
+
+    .reveal-color-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1.5px solid #ffffff40;
+    }
+
+    .reveal-name { flex: 1; font-weight: 500; font-size: 0.88rem; }
+
+    .reveal-dist {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    .reveal-round-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      color: var(--accent);
+      min-width: 44px;
+      text-align: right;
+    }
+
+    .reveal-total-score {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      min-width: 52px;
+      text-align: right;
+    }
+
+    .reveal-footer {
+      margin-top: auto;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .reveal-countdown {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+
+    .reveal-countdown span { color: var(--accent); font-weight: 500; }
+
+    /* ── Player Guess Markers (shown during reveal) ── */
+    .player-guess-wrap {
+      position: absolute;
+      pointer-events: none;
+      z-index: 14;
+    }
+
+    .player-guess-pin {
+      position: absolute;
+      width: 14px; height: 14px;
+      border: 2.5px solid white;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 6px #0008;
+      left: 0; top: 0;
+    }
+
+    .player-guess-label {
+      position: absolute;
+      left: 0;
+      transform: translateX(-50%);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: white;
+      padding: 2px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+      box-shadow: 0 1px 4px #0008;
+      line-height: 1.4;
+    }
+
+    .player-guess-label.is-me {
+      outline: 2px solid white;
+      outline-offset: 1px;
+    }
+
     /* ── Responsive ── */
     @media (max-width: 768px) {
       .game-body { flex-direction: column; }
@@ -668,6 +798,15 @@
     <div class="photo-panel">
       <img id="round-photo" src="" alt="Where was this taken?" draggable="false" />
       <div class="photo-label" id="photo-label"></div>
+      <!-- Scoreboard shown during the 30s reveal phase -->
+      <div class="reveal-panel" id="reveal-panel">
+        <div class="reveal-title">Round <span id="reveal-round-num">1</span> Results</div>
+        <div class="reveal-subtitle" id="reveal-subtitle"></div>
+        <div id="reveal-rows"></div>
+        <div class="reveal-footer">
+          <div class="reveal-countdown" id="reveal-countdown"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Map -->
@@ -821,6 +960,12 @@
     pendingGuess = null;
     guessSubmitted = false;
 
+    // Clear reveal phase state
+    document.getElementById('reveal-panel').classList.remove('visible');
+    clearAllGuessMarkers();
+    const answerMarker = document.getElementById('answer-marker');
+    if (answerMarker) answerMarker.style.display = 'none';
+
     document.getElementById('guess-marker').classList.remove('visible');
     document.getElementById('confirm-btn').classList.remove('visible');
     document.getElementById('confirm-btn').disabled = false;
@@ -917,35 +1062,46 @@
   function handleRoundEnd({ roundIndex, answerLat, answerLng, label, playerResults, nextRoundIn }) {
     clearInterval(timerInterval);
     guessedPlayers = [];
+    guessSubmitted = true; // block map clicks during reveal
 
-    // Draw answer pin on map
+    // Clean up any pending guess UI
+    document.getElementById('guess-marker').classList.remove('visible');
+    document.getElementById('confirm-btn').classList.remove('visible');
+    document.getElementById('guess-submitted-msg').classList.remove('visible');
+    document.getElementById('guessed-count').textContent = '';
+
+    // Show answer + all player guesses on the map
     showAnswerOnMap(answerLat, answerLng);
+    showAllGuessesOnMap(playerResults);
 
-    // Build results overlay
-    document.getElementById('results-title').textContent = `Round ${roundIndex + 1} Results`;
-    document.getElementById('results-answer').innerHTML =
-      label ? `📍 <span>${escHtml(label)}</span>` : `📍 Answer: <span>${answerLat.toFixed(5)}, ${answerLng.toFixed(5)}</span>`;
+    // Populate the reveal scoreboard in the photo panel
+    document.getElementById('reveal-round-num').textContent = roundIndex + 1;
+    document.getElementById('reveal-subtitle').innerHTML =
+      label ? `📍 <span>${escHtml(label)}</span>` : `📍 <span>${answerLat.toFixed(5)}, ${answerLng.toFixed(5)}</span>`;
 
     const rows = playerResults.map((p, i) => {
       const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
-      const distStr = p.distanceMetres !== null ? `${p.distanceMetres}m away` : 'No guess';
+      const distStr = p.distanceMetres !== null ? `${p.distanceMetres}m` : '—';
       const youTag = p.playerId === myId ? '<span class="result-you">YOU</span>' : '';
+      const color = getPlayerColor(p.playerId);
       return `
-        <div class="result-row">
-          <div class="result-rank ${rankClass}">${i + 1}</div>
-          <div class="result-name">${escHtml(p.name)}${youTag}</div>
-          <div class="result-distance">${distStr}</div>
-          <div class="result-score">+${p.roundScore}</div>
+        <div class="reveal-row">
+          <div class="reveal-rank ${rankClass}">${i + 1}</div>
+          <div class="reveal-color-dot" style="background:${color}"></div>
+          <div class="reveal-name">${escHtml(p.name)}${youTag}</div>
+          <div class="reveal-dist">${distStr}</div>
+          <div class="reveal-round-score">+${p.roundScore}</div>
+          <div class="reveal-total-score">${p.totalScore.toLocaleString()}</div>
         </div>
       `;
     }).join('');
 
-    document.getElementById('results-rows').innerHTML = rows;
-    document.getElementById('results-overlay').classList.add('visible');
+    document.getElementById('reveal-rows').innerHTML = rows;
+    document.getElementById('reveal-panel').classList.add('visible');
 
-    // Countdown to next round
+    // Countdown
     let secs = nextRoundIn;
-    const cdEl = document.getElementById('next-countdown');
+    const cdEl = document.getElementById('reveal-countdown');
     clearInterval(countdownInterval);
     cdEl.innerHTML = `Next round in <span>${secs}</span>s`;
     countdownInterval = setInterval(() => {
@@ -982,9 +1138,83 @@
     answerMarker.style.left = (rect.left - panelRect.left + xPct * rect.width) + 'px';
     answerMarker.style.top = (rect.top - panelRect.top + yPct * rect.height) + 'px';
     answerMarker.style.display = 'block';
+    answerMarker.style.zIndex = '13';
+  }
 
-    // Hide it when next round starts (handleRoundStart clears markers)
-    setTimeout(() => { if (answerMarker) answerMarker.style.display = 'none'; }, 8500);
+  // ── Player Guess Reveal ───────────────────────────────────────────────────────
+  const PLAYER_COLORS = Array.from({ length: 50 }, (_, i) => {
+    const hue = Math.round((i * 137.508) % 360);
+    const sat = [75, 80, 70][i % 3];
+    const lit = [60, 55, 65][i % 3];
+    return `hsl(${hue},${sat}%,${lit}%)`;
+  });
+
+  function getPlayerColor(playerId) {
+    let hash = 0;
+    for (let i = 0; i < playerId.length; i++) {
+      hash = (hash << 5) - hash + playerId.charCodeAt(i);
+      hash |= 0;
+    }
+    return PLAYER_COLORS[Math.abs(hash) % PLAYER_COLORS.length];
+  }
+
+  function showAllGuessesOnMap(playerResults) {
+    clearAllGuessMarkers();
+
+    const mapImg = document.getElementById('map-img');
+    const mapPanel = document.getElementById('map-panel');
+    const rect = mapImg.getBoundingClientRect();
+    const panelRect = mapPanel.getBoundingClientRect();
+
+    const CLUSTER_THRESHOLD = 30; // px — markers closer than this get label stacking
+    const LABEL_BASE_TOP = -32;   // px above the coordinate for the first label
+    const LABEL_STEP = 24;        // px to push each additional label further up
+    const placed = [];
+
+    playerResults.forEach((p, i) => {
+      if (!p.didGuess) return;
+
+      const xPct = (p.guessLng - MAP_BOUNDS.topLeft.lng) / (MAP_BOUNDS.bottomRight.lng - MAP_BOUNDS.topLeft.lng);
+      const yPct = (p.guessLat - MAP_BOUNDS.topLeft.lat) / (MAP_BOUNDS.bottomRight.lat - MAP_BOUNDS.topLeft.lat);
+
+      const x = rect.left - panelRect.left + xPct * rect.width;
+      const y = rect.top - panelRect.top + yPct * rect.height;
+
+      // Count how many markers are already in this cluster to stack labels
+      let stackCount = 0;
+      placed.forEach(q => {
+        if (Math.abs(q.x - x) < CLUSTER_THRESHOLD && Math.abs(q.y - y) < CLUSTER_THRESHOLD) stackCount++;
+      });
+      placed.push({ x, y });
+
+      const color = getPlayerColor(p.playerId);
+      const isMe = p.playerId === myId;
+
+      const wrap = document.createElement('div');
+      wrap.className = 'player-guess-wrap';
+      wrap.style.left = x + 'px';
+      wrap.style.top = y + 'px';
+
+      // Pin centered on the coordinate
+      const pin = document.createElement('div');
+      pin.className = 'player-guess-pin';
+      pin.style.background = color;
+
+      // Label floats above, stacked upward when markers cluster
+      const label = document.createElement('div');
+      label.className = 'player-guess-label' + (isMe ? ' is-me' : '');
+      label.textContent = p.name;
+      label.style.background = color;
+      label.style.top = (LABEL_BASE_TOP - stackCount * LABEL_STEP) + 'px';
+
+      wrap.appendChild(pin);
+      wrap.appendChild(label);
+      mapPanel.appendChild(wrap);
+    });
+  }
+
+  function clearAllGuessMarkers() {
+    document.querySelectorAll('.player-guess-wrap').forEach(el => el.remove());
   }
 
   // ── Game Over ─────────────────────────────────────────────────────────────────
