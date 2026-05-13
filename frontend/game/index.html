@@ -812,6 +812,7 @@
     <!-- Map -->
     <div class="map-panel" id="map-panel" onclick="handleMapClick(event)">
       <img class="map-img" id="map-img" src="" alt="Map" draggable="false" />
+      <svg id="reveal-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:11;display:none;overflow:visible"></svg>
       <div class="guess-marker" id="guess-marker"></div>
       <div class="guessed-count" id="guessed-count"></div>
       <button class="confirm-btn" id="confirm-btn" onclick="confirmGuess(event)">Confirm Guess ✓</button>
@@ -1072,7 +1073,7 @@
 
     // Show answer + all player guesses on the map
     showAnswerOnMap(answerLat, answerLng);
-    showAllGuessesOnMap(playerResults);
+    showAllGuessesOnMap(playerResults, answerLat, answerLng);
 
     // Populate the reveal scoreboard in the photo panel
     document.getElementById('reveal-round-num').textContent = roundIndex + 1;
@@ -1158,7 +1159,7 @@
     return PLAYER_COLORS[Math.abs(hash) % PLAYER_COLORS.length];
   }
 
-  function showAllGuessesOnMap(playerResults) {
+  function showAllGuessesOnMap(playerResults, answerLat, answerLng) {
     clearAllGuessMarkers();
 
     const mapImg = document.getElementById('map-img');
@@ -1166,9 +1167,20 @@
     const rect = mapImg.getBoundingClientRect();
     const panelRect = mapPanel.getBoundingClientRect();
 
-    const CLUSTER_THRESHOLD = 30; // px — markers closer than this get label stacking
-    const LABEL_BASE_TOP = -32;   // px above the coordinate for the first label
-    const LABEL_STEP = 24;        // px to push each additional label further up
+    // Answer pixel position for line endpoints
+    const ansXPct = (answerLng - MAP_BOUNDS.topLeft.lng) / (MAP_BOUNDS.bottomRight.lng - MAP_BOUNDS.topLeft.lng);
+    const ansYPct = (answerLat - MAP_BOUNDS.topLeft.lat) / (MAP_BOUNDS.bottomRight.lat - MAP_BOUNDS.topLeft.lat);
+    const ansX = rect.left - panelRect.left + ansXPct * rect.width;
+    const ansY = rect.top - panelRect.top + ansYPct * rect.height;
+
+    // Prepare SVG overlay for dashed lines
+    const svg = document.getElementById('reveal-svg');
+    svg.innerHTML = '';
+    svg.style.display = 'block';
+
+    const CLUSTER_THRESHOLD = 30;
+    const LABEL_BASE_TOP = -32;
+    const LABEL_STEP = 24;
     const placed = [];
 
     playerResults.forEach((p, i) => {
@@ -1180,14 +1192,26 @@
       const x = rect.left - panelRect.left + xPct * rect.width;
       const y = rect.top - panelRect.top + yPct * rect.height;
 
-      // Count how many markers are already in this cluster to stack labels
+      // Dashed line from guess to answer
+      const color = getPlayerColor(p.playerId);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x);
+      line.setAttribute('y1', y);
+      line.setAttribute('x2', ansX);
+      line.setAttribute('y2', ansY);
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('stroke-dasharray', '6,4');
+      line.setAttribute('stroke-opacity', '0.75');
+      svg.appendChild(line);
+
+      // Count nearby markers to stack labels
       let stackCount = 0;
       placed.forEach(q => {
         if (Math.abs(q.x - x) < CLUSTER_THRESHOLD && Math.abs(q.y - y) < CLUSTER_THRESHOLD) stackCount++;
       });
       placed.push({ x, y });
 
-      const color = getPlayerColor(p.playerId);
       const isMe = p.playerId === myId;
 
       const wrap = document.createElement('div');
@@ -1195,15 +1219,14 @@
       wrap.style.left = x + 'px';
       wrap.style.top = y + 'px';
 
-      // Pin centered on the coordinate
       const pin = document.createElement('div');
       pin.className = 'player-guess-pin';
       pin.style.background = color;
 
-      // Label floats above, stacked upward when markers cluster
+      const distText = p.distanceMetres !== null ? ` · ${p.distanceMetres}m` : '';
       const label = document.createElement('div');
       label.className = 'player-guess-label' + (isMe ? ' is-me' : '');
-      label.textContent = p.name;
+      label.textContent = p.name + distText;
       label.style.background = color;
       label.style.top = (LABEL_BASE_TOP - stackCount * LABEL_STEP) + 'px';
 
@@ -1215,6 +1238,8 @@
 
   function clearAllGuessMarkers() {
     document.querySelectorAll('.player-guess-wrap').forEach(el => el.remove());
+    const svg = document.getElementById('reveal-svg');
+    if (svg) { svg.innerHTML = ''; svg.style.display = 'none'; }
   }
 
   // ── Game Over ─────────────────────────────────────────────────────────────────
